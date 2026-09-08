@@ -1,0 +1,210 @@
+{
+  "name": "Reporte por Materias",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "18QWPOAVzwF0SENJ273iMgkTjtDdNV4fivGw52m6KRCQ",
+          "mode": "list",
+          "cachedResultName": "DataBase_Chatbot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18QWPOAVzwF0SENJ273iMgkTjtDdNV4fivGw52m6KRCQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1727129382,
+          "mode": "list",
+          "cachedResultName": "tutores_informacion",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18QWPOAVzwF0SENJ273iMgkTjtDdNV4fivGw52m6KRCQ/edit#gid=1727129382"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e07cec79-d8ca-46fb-a922-f1c53a088042",
+      "name": "Leer Tutores1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Kwfbbbu2SbprAc2q",
+          "name": "DataBase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "18QWPOAVzwF0SENJ273iMgkTjtDdNV4fivGw52m6KRCQ",
+          "mode": "list",
+          "cachedResultName": "DataBase_Chatbot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18QWPOAVzwF0SENJ273iMgkTjtDdNV4fivGw52m6KRCQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 634863143,
+          "mode": "list",
+          "cachedResultName": "Tutorias_asignadas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18QWPOAVzwF0SENJ273iMgkTjtDdNV4fivGw52m6KRCQ/edit#gid=634863143"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        208
+      ],
+      "id": "3112744b-d081-451e-b338-eaa1aadc5f1b",
+      "name": "Leer Tutorias1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Kwfbbbu2SbprAc2q",
+          "name": "DataBase"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        112
+      ],
+      "id": "46c31853-5498-4aa7-91a5-ec286a04fbe1",
+      "name": "Juntar Tutores y Tutorias1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const tutorias = $input.all().map(item => item.json);\n\n// Objeto para agrupar las materias\nconst materias = {};\n\nfor (const tutoria of tutorias) {\n\n    // Verificar que exista la materia\n    if (!tutoria.materia) {\n        continue;\n    }\n\n    // Normalizar materia\n    const materia = tutoria.materia\n        .toString()\n        .trim()\n        .toLowerCase()\n        .normalize(\"NFD\")\n        .replace(/[\\u0300-\\u036f]/g, \"\");\n\n    // Crear materia si no existe\n    if (!materias[materia]) {\n        materias[materia] = {\n            nombre: tutoria.materia.toString().trim(),\n            total: 0,\n            pendientes: 0,\n            canceladas: 0\n        };\n    }\n\n    // Contar solicitud\n    materias[materia].total++;\n\n    // Contar estados\n    const estado = (tutoria.estado || \"\").toString().toLowerCase();\n\n    if (estado === \"pendiente\") {\n        materias[materia].pendientes++;\n    }\n\n    if (estado === \"cancelado\") {\n        materias[materia].canceladas++;\n    }\n}\n\n// Convertir a lista y ordenar\nconst reporte = Object.values(materias)\n    .sort((a, b) => b.total - a.total);\n\n// Total de solicitudes válidas\nconst totalSolicitudes = reporte.reduce(\n    (total, materia) => total + materia.total,\n    0\n);\n\n// Crear mensaje\nlet mensaje = `📊 *REPORTE DE DEMANDA DE TUTORÍAS*\\n`;\nmensaje += `━━━━━━━━━━━━━━━━━━\\n\\n`;\n\nif (reporte.length === 0) {\n\n    mensaje += `ℹ️ No se encontraron solicitudes de tutoría.\\n`;\n\n} else {\n\n    mensaje += `📚 *SOLICITUDES POR MATERIA*\\n\\n`;\n\n    reporte.forEach((materia, index) => {\n\n        const porcentaje = totalSolicitudes > 0\n            ? ((materia.total / totalSolicitudes) * 100).toFixed(1)\n            : 0;\n\n        let puesto = \"🔹\";\n\n        if (index === 0) puesto = \"🥇\";\n        else if (index === 1) puesto = \"🥈\";\n        else if (index === 2) puesto = \"🥉\";\n\n        mensaje += `${puesto} *${materia.nombre}*\\n`;\n        mensaje += `   📊 Solicitudes: *${materia.total}*\\n`;\n        mensaje += `   📈 Demanda: *${porcentaje}%*\\n`;\n        mensaje += `   🟢 Pendientes: ${materia.pendientes}\\n`;\n        mensaje += `   🔴 Canceladas: ${materia.canceladas}\\n\\n`;\n    });\n}\n\nmensaje += `━━━━━━━━━━━━━━━━━━\\n`;\nmensaje += `📚 *Materias solicitadas:* ${reporte.length}\\n`;\nmensaje += `📝 *Total de solicitudes:* ${totalSolicitudes}`;\n\nreturn [\n    {\n        json: {\n            mensaje: mensaje , \n            ExisteMensaje: true\n        }\n    }\n];"
+      },
+      "id": "911f4fa8-dc55-49d3-84a4-3b0555a27d99",
+      "name": "Generar Reporte por Materias1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Webhook').item.json.body.Id_telegram }}",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        112
+      ],
+      "id": "d7118079-d467-42f2-8320-8591d0140096",
+      "name": "Send a text message",
+      "webhookId": "ebab3d48-75f4-4696-af28-34c843afdb63",
+      "credentials": {
+        "telegramApi": {
+          "id": "CrvyW2koV3hN6FS9",
+          "name": "Cordinador_Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "ReportePorMateria",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -208,
+        112
+      ],
+      "id": "25bdfe08-76ab-4c07-bbaa-000237339089",
+      "name": "Webhook",
+      "webhookId": "4fce9b75-3214-4497-a337-36a61e3650fd"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Leer Tutores1": {
+      "main": [
+        [
+          {
+            "node": "Juntar Tutores y Tutorias1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Tutorias1": {
+      "main": [
+        [
+          {
+            "node": "Juntar Tutores y Tutorias1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Juntar Tutores y Tutorias1": {
+      "main": [
+        [
+          {
+            "node": "Generar Reporte por Materias1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Reporte por Materias1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Leer Tutores1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Leer Tutorias1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ba913354-9a28-4d32-8713-0eaa71b7c0d4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ba3ce39e76ded1896fdf508f22c04149f6a1d97b9e21b7794aa051f9f9199ae7"
+  },
+  "nodeGroups": [],
+  "id": "FWP1Dtsj0LeXAMYd",
+  "tags": []
+}
