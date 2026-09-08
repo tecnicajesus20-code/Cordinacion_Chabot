@@ -1,6 +1,8 @@
 # 📊 Módulo de Coordinación Académica — Complemento de `CHAT_BOT.zip`
 
-Este proyecto es una **extensión** del sistema de asesorías académicas construido en `CHAT_BOT.zip`. Mientras que el sistema base atiende a los **estudiantes** (agendar, cancelar y consultar tutorías vía Telegram), este complemento añade un **bot para el Coordinador Académico**, orientado a la analítica y toma de decisiones sobre la demanda de tutorías.
+> 📁 Repositorio: **[Chatbot-de-Asesorias-Yisus](https://github.com/tecnicajesus20-code/Chatbot-de-Asesorias-Yisus.git)**
+
+Este proyecto es una **extensión** del sistema de asesorías académicas construido en `CHAT_BOT.zip`, contenido dentro del repositorio [`Chatbot-de-Asesorias-Yisus`](https://github.com/tecnicajesus20-code/Chatbot-de-Asesorias-Yisus.git). Mientras que el sistema base atiende a los **estudiantes** (agendar, cancelar y consultar tutorías vía Telegram), este complemento añade un **bot para el Coordinador Académico**, orientado a la analítica y toma de decisiones sobre la demanda de tutorías.
 
 Está construido sobre **n8n** (automatización de flujos), **Telegram Bot API** (interfaz conversacional) y **Google Sheets** (base de datos), con un **Agente de IA (Google Gemini)** como motor conversacional.
 
@@ -113,6 +115,65 @@ Ambos bots comparten la **misma base de datos** en Google Sheets, pero cada uno 
 📚 Materias solicitadas: 3
 📝 Total de solicitudes: 4
 ```
+
+---
+
+## 🧠 Lógica implementada (razonamiento del agente)
+
+La "inteligencia" del bot de Coordinación no está en el código sino en el **prompt de sistema** del `AI Agent`, que actúa como una máquina de estados conversacional. La lógica se resume en estas reglas:
+
+1. **Control de flujo por intención, no por comandos fijos.**
+   El agente no espera botones ni comandos `/algo`: interpreta lenguaje natural ("quiero ver el reporte", "muéstrame la demanda", "dame el reporte") y lo mapea a la única herramienta activa, `VerReporteporMateria`.
+
+2. **Principio de "menos es más" en las respuestas.**
+   - En el **saludo inicial** solo se listan las opciones disponibles, sin explicarlas.
+   - La **explicación** de una función solo se entrega si el Coordinador pregunta explícitamente qué hace o para qué sirve (evita saturar la conversación con texto innecesario).
+   - Si la solicitud del reporte es clara, el agente **ejecuta la herramienta directamente**, sin pedir confirmación ni repetir su descripción.
+
+3. **Separación entre "ejecutar" y "responder".**
+   El reporte en sí **no lo entrega el agente**: lo envía por Telegram el propio workflow `Reporte_por_Materias.json` (nodo `Send a text message`), de forma independiente. Por eso, tras ejecutar la herramienta con éxito, el agente tiene la instrucción estricta de responder únicamente `"Mensaje enviado"`, sin mostrar, resumir ni interpretar el contenido del reporte. Esto evita que el reporte llegue **duplicado** al Coordinador (una vez por el workflow del reporte y otra por el propio agente).
+
+4. **Nodo `If` como guardián anti-duplicados.**
+   Después del `AI Agent`, el nodo `If` compara la salida (`$json.output`) contra el texto exacto `"Mensaje enviado"`. Solo si son **distintos** se reenvía la respuesta al Coordinador por el nodo `Send a text message` del propio bot; si son iguales, no se reenvía nada (porque el reporte ya fue entregado por el otro workflow).
+
+5. **Manejo explícito de funciones no disponibles.**
+   Si el Coordinador pide algo distinto a "Ver Reporte por Materia" (p. ej. "quiero registrar una tutoría" o "quiero hacer más"), el agente **no improvisa ni inventa funciones**: responde con un mensaje estándar indicando que esa funcionalidad aún no está habilitada y recuerda cuál es la única activa. Esto hace que el sistema sea fácilmente extensible: basta con añadir nuevas herramientas y actualizar la tabla de intenciones del prompt.
+
+6. **Cálculo del reporte (lógica en el nodo Code de `Reporte_por_Materias.json`):**
+   - Normaliza el texto de la materia (minúsculas + eliminación de tildes) para **agrupar variantes** del mismo nombre bajo una sola clave, aunque se muestre el nombre original "bonito" al usuario.
+   - Cuenta, por materia: total de solicitudes, pendientes y canceladas.
+   - Calcula el porcentaje de demanda = `(solicitudes de la materia / total de solicitudes) × 100`.
+   - Ordena las materias de mayor a menor demanda y asigna medallas 🥇🥈🥉 a las tres primeras.
+   - Arma un único mensaje en formato Markdown (Telegram) con el detalle por materia y un resumen final.
+
+7. **Memoria conversacional acotada.**
+   El nodo `Simple Memory` guarda el historial por `chatId` (identificador de Telegram) con una ventana de 15 mensajes, suficiente para mantener contexto en una sesión de coordinación sin acumular información indefinidamente.
+
+---
+
+## 🖼️ Ejemplo de conversación (capturas del chat)
+
+Secuencia real de interacción entre el Coordinador y `Cordinacion_bot`, que ilustra la lógica descrita arriba:
+
+**1. Saludo inicial — solo se muestra el menú, sin explicaciones.**
+
+![Saludo inicial del bot de Coordinación](assets/coordinador_saludo.png)
+
+**2. Solicitud directa del reporte — el agente ejecuta la herramienta sin pedir confirmación y el reporte llega formateado.**
+
+![Reporte de demanda de tutorías generado](assets/coordinador_reporte_generado.png)
+
+**3. Solicitud de una función no disponible — el agente no inventa funcionalidades.**
+
+![Respuesta cuando se pide una función no habilitada](assets/coordinador_funcion_no_disponible.png)
+
+**4. Pregunta de seguimiento ("¿Por qué?") — el agente aclara el estado del sistema sin salirse del guion.**
+
+![Aclaración sobre por qué solo hay una función activa](assets/coordinador_por_que.png)
+
+**5. Pregunta explícita sobre la funcionalidad — ahí sí se entrega la explicación detallada.**
+
+![Explicación de para qué sirve Ver Reporte por Materia](assets/coordinador_explicacion_reporte.png)
 
 ---
 
