@@ -102,8 +102,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        672,
-        112
+        624,
+        -16
       ],
       "id": "d7118079-d467-42f2-8320-8591d0140096",
       "name": "Send a text message",
@@ -118,6 +118,7 @@
     {
       "parameters": {
         "path": "ReportePorMateria",
+        "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
@@ -129,6 +130,21 @@
       "id": "25bdfe08-76ab-4c07-bbaa-000237339089",
       "name": "Webhook",
       "webhookId": "4fce9b75-3214-4497-a337-36a61e3650fd"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Mensaje enviado\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        656,
+        224
+      ],
+      "id": "0288ce90-114d-4737-b92b-f0a84f3f06b9",
+      "name": "Respond to Webhook"
     }
   ],
   "pinData": {},
@@ -173,6 +189,11 @@
             "node": "Send a text message",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -199,7 +220,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "ba913354-9a28-4d32-8713-0eaa71b7c0d4",
+  "versionId": "4cedcbe1-44d4-4d7b-87b3-dd2587a30def",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "ba3ce39e76ded1896fdf508f22c04149f6a1d97b9e21b7794aa051f9f9199ae7"
