@@ -60,6 +60,8 @@ Ambos bots comparten la **misma base de datos** en Google Sheets, pero cada uno 
 
 ## 🤖 Flujo del bot de Coordinación (`Cordinacion_bot.json`)
 
+![Diagrama del workflow Cordinacion_bot en n8n](assets/workflow_cordinacion_bot.png)
+
 1. **`Telegram Trigger`** — escucha mensajes entrantes del Coordinador.
 2. **`AI Agent`** (Gemini `models/gemini-3.5-flash-lite`) — interpreta la intención del Coordinador según un prompt de sistema que define:
    - Saludo y menú inicial (solo muestra las opciones activas, sin explicarlas).
@@ -73,6 +75,8 @@ Ambos bots comparten la **misma base de datos** en Google Sheets, pero cada uno 
 6. **`Send a text message`** — responde al Coordinador por Telegram.
 
 ## 📈 Flujo del reporte (`Reporte_por_Materias.json`)
+
+![Diagrama del workflow Reporte_por_Materias en n8n](assets/workflow_reporte_por_materias.png)
 
 1. **`Webhook`** (`/ReportePorMateria`) — recibe el `Id_telegram` del Coordinador.
 2. **`Leer Tutores1`** y **`Leer Tutorias1`** — leen las hojas `tutores_informacion` y `Tutorias_asignadas` de Google Sheets.
